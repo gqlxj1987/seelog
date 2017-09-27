@@ -693,10 +693,10 @@ func (rw *rollingFileWriter) timer() {
 		t := time.NewTimer(next.Sub(now))
 		<-t.C
 		rw.rollLock.Lock()
-		defer rw.rollLock.Unlock()
 		if err := rw.roll(); err != nil {
-			panic(err)
+			fmt.Println(err.Error())
 		}
+		rw.rollLock.Unlock()
 	}
 
 }
