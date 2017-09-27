@@ -425,7 +425,7 @@ func (rw *rollingFileWriter) archiveUnexplodedLogs(compressionType compressionTy
 			return err
 		}
 
-	// Failed to stat
+		// Failed to stat
 	case !os.IsNotExist(err):
 		return err
 	}
@@ -683,6 +683,24 @@ type rollingFileWriterTime struct {
 	currentTimeFileName string
 }
 
+//按小时生成日志
+func (rw *rollingFileWriter) timer() {
+
+	for {
+		var now = time.Now()
+		var next = now
+		next = time.Date(next.Year(), next.Month(), next.Day(), next.Hour()+1, 0, 0, 0, next.Location())
+		t := time.NewTimer(next.Sub(now))
+		<-t.C
+		rw.rollLock.Lock()
+		defer rw.rollLock.Unlock()
+		if err := rw.roll(); err != nil {
+			panic(err)
+		}
+	}
+
+}
+
 func NewRollingFileWriterTime(fpath string, atype rollingArchiveType, apath string, maxr int,
 	timePattern string, namemode rollingNameMode, archiveExploded bool, fullName bool) (*rollingFileWriterTime, error) {
 
@@ -692,6 +710,7 @@ func NewRollingFileWriterTime(fpath string, atype rollingArchiveType, apath stri
 	}
 	rws := &rollingFileWriterTime{rw, timePattern, ""}
 	rws.self = rws
+	go rws.timer()
 	return rws, nil
 }
 
