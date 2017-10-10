@@ -85,6 +85,7 @@ const (
 	rollingFileArchivePathAttr       = "archivepath"
 	rollingFileArchiveExplodedAttr   = "archiveexploded"
 	rollingFileFullNameAttr          = "fullname"
+	rollingTimeIntervalAttr          = "timeInterval"
 	bufferedWriterID                 = "buffered"
 	bufferedSizeAttr                 = "size"
 	bufferedFlushPeriodAttr          = "flushperiod"
@@ -1129,7 +1130,16 @@ func createRollingFileWriter(node *xmlNode, formatFromParent *formatter, formats
 			return nil, newMissingArgumentError(node.name, rollingFileDataPatternAttr)
 		}
 
-		rollingWriter, err := NewRollingFileWriterTime(path, rArchiveType, rArchivePath, maxRolls, dataPattern, nameMode, rArchiveExploded, fullName)
+		timeFlag := 1
+		timeFlagStr, ok := node.attributes[rollingTimeIntervalAttr]
+		if ok {
+			timeFlag, err = strconv.Atoi(timeFlagStr)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		rollingWriter, err := NewRollingFileWriterTime(path, rArchiveType, rArchivePath, maxRolls, dataPattern, nameMode, rArchiveExploded, fullName, timeFlag)
 		if err != nil {
 			return nil, err
 		}

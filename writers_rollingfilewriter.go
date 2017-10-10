@@ -683,18 +683,28 @@ type rollingFileWriterTime struct {
 	currentTimeFileName string
 }
 
-//按小时生成日志
-func (rw *rollingFileWriter) timer() {
+// generate log by time when
+func (rw *rollingFileWriter) timerTrick(timeFlag int) {
 
 	for {
 		var now = time.Now()
 		var next = now
-		next = time.Date(next.Year(), next.Month(), next.Day(), next.Hour()+1, 0, 0, 0, next.Location())
+		switch timeFlag {
+		case 0:
+			next = time.Date(next.Year(), next.Month(), next.Day()+1, next.Hour(), 0, 0, 0, next.Location())
+		case 2:
+			next = time.Date(next.Year(), next.Month(), next.Day(), next.Hour(), next.Minute()+1, 0, 0, next.Location())
+		case 1:
+		default:
+			next = time.Date(next.Year(), next.Month(), next.Day(), next.Hour()+1, 0, 0, 0, next.Location())
+		}
 		t := time.NewTimer(next.Sub(now))
 		<-t.C
 		rw.rollLock.Lock()
-		if err := rw.roll(); err != nil {
-			fmt.Println(err.Error())
+		if rw.self.needsToRoll() {
+			if err := rw.roll(); err != nil {
+				fmt.Println(err.Error())
+			}
 		}
 		rw.rollLock.Unlock()
 	}
@@ -702,7 +712,7 @@ func (rw *rollingFileWriter) timer() {
 }
 
 func NewRollingFileWriterTime(fpath string, atype rollingArchiveType, apath string, maxr int,
-	timePattern string, namemode rollingNameMode, archiveExploded bool, fullName bool) (*rollingFileWriterTime, error) {
+	timePattern string, namemode rollingNameMode, archiveExploded bool, fullName bool, timeFlag int) (*rollingFileWriterTime, error) {
 
 	rw, err := newRollingFileWriter(fpath, rollingTypeTime, atype, apath, maxr, namemode, archiveExploded, fullName)
 	if err != nil {
@@ -710,7 +720,7 @@ func NewRollingFileWriterTime(fpath string, atype rollingArchiveType, apath stri
 	}
 	rws := &rollingFileWriterTime{rw, timePattern, ""}
 	rws.self = rws
-	go rws.timer()
+	go rws.timerTrick(timeFlag)
 	return rws, nil
 }
 
